@@ -111,6 +111,38 @@ Le workflow `.github/workflows/deploy-pages.yml` construit et déploie automatiq
 
 URL : https://brahmiamine.github.io/distance/
 
+## Hébergement VPS — distance.clubika.com
+
+Le site est servi à la racine de **https://distance.clubika.com**, dans le
+conteneur `distancecalc-web`, sur le réseau existant `clubika_internal`, derrière
+le Caddy partagé de Clubika. Aucun port public supplémentaire ni base de données
+n'est nécessaire. Les appels IGN et Transitous partent du navigateur.
+
+L'image `server/Dockerfile` installe les dépendances avec `npm ci`, exécute les
+tests, compile le site puis sert `dist/` avec Caddy sur le port interne 8080.
+`GET /healthz` répond `ok`. Les fichiers compilés sous `/assets/` sont mis en cache
+pendant un an ; le document HTML est revalidé à chaque visite.
+
+Installation sur le VPS, une fois ces fichiers présents sur `origin/main` et le
+DNS `distance.clubika.com` dirigé vers ce serveur :
+
+```bash
+cd ~/repos/distanceCalc
+git pull --ff-only origin main
+bash deploy/install-vps.sh
+```
+
+Le script prend le verrou du déploiement existant, construit et vérifie le
+conteneur, sauvegarde les configurations dans `~/deploy/backups/`, valide et
+recharge Caddy, puis vérifie le site en HTTPS. Il ajoute ensuite `distanceCalc`
+à `~/deploy/auto-deploy.sh`, avec un contrôle de santé adapté au site statique.
+Les commits suivants sur `main` seront déployés par `app-deploy.timer`, avec
+retour à la version précédente si le build ou le contrôle de santé échoue.
+
+La CI `ci.yml` construit l'image (tests inclus), démarre le serveur et vérifie
+la page HTML ainsi que son fichier JavaScript. Le workflow GitHub Pages garde
+explicitement sa base `/distance/` ; le build VPS utilise `/`.
+
 ## Important
 
 Les itinéraires sont calculés au moment de la recherche et peuvent donc varier avec les horaires et les données de transport disponibles.

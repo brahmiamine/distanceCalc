@@ -1,0 +1,27 @@
+name: distancecalc
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    container_name: distancecalc-web
+    restart: unless-stopped
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz | grep -qx ok"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-clubika_internal}

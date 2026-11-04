@@ -30,7 +30,7 @@ jobs:
         run: npm install
 
       - name: Build
-        run: npm run build
+        run: npm test && npm run build -- --base=/distance/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

@@ -1,0 +1,32 @@
+name: Validate VPS image
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image (tests and production build)
+        run: docker build -f server/Dockerfile -t distancecalc:test .
+      - name: Verify HTTP service and compiled assets
+        run: |
+          docker run -d --name distancecalc-test -p 127.0.0.1:8080:8080 distancecalc:test
+          trap 'docker logs distancecalc-test; docker rm -f distancecalc-test' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/healthz | grep -qx ok; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/healthz | grep -qx ok
+          curl -fsS http://127.0.0.1:8080/ > /tmp/distance-index.html
+          grep -q 'Distance Transports' /tmp/distance-index.html
+          asset=$(sed -n 's/.*src="\(\/assets\/[^" ]*\.js\)".*/\1/p' /tmp/distance-index.html)
+          test -n "$asset"
+          curl -fsS "http://127.0.0.1:8080$asset" > /tmp/distance-app.js
+          test -s /tmp/distance-app.js

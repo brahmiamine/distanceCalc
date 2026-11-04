@@ -1,0 +1,4 @@
+distance.clubika.com {
+	encode gzip zstd
+	reverse_proxy distancecalc-web:8080
+}
